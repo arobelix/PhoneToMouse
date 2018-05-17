@@ -7,6 +7,8 @@ import android.hardware.SensorEvent;
 import android.hardware.Sensor;
 import android.hardware.SensorManager;
 import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -28,14 +30,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private long lastUpdate;
     private boolean magOn = false;
     private boolean accelerOn = true;;
-    private static final int SHAKE_THRESHOLD = 600;
     private TextView timeValues;
     private TextView dataValues;
     private Button rightClick;
     private Button leftClick;
     private GeomagneticField geo;
-    private Location location;
-
+    private Location currentLocation;
+    private LocationManager locationManager;
+    private LocationListener locationListener;
     //Called when activity is created
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,8 +49,33 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         senSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         accelerometer = senSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         magnet = senSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
+        //location request and establishment
+        locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
+        locationListener = new LocationListener() {
+            public void onLocationChanged(Location location) {
+            }
+            public void onStatusChanged(String provider, int status, Bundle extras) {
 
-        geo = new GeomagneticField((float) location.getLatitude(), (float) location.getLongitude(), (float) location.getAltitude(), System.currentTimeMillis());
+            }
+            public void onProviderEnabled(String provider) {
+
+            }
+            public void onProviderDisabled(String provider) {
+
+            }
+        };
+        try {
+            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, locationListener);
+            currentLocation = locationListener
+        }
+        catch(SecurityException e) {
+            Log.e("e", "NA");
+        }
+        finally{
+            finish();
+        }
+        geo = new GeomagneticField((float) currentLocation.getLatitude(), (float) currentLocation.getLongitude(), (float) currentLocation.getAltitude(), System.currentTimeMillis());
+
         senSensorManager.registerListener(this, magnet, SensorManager.SENSOR_DELAY_NORMAL);
         senSensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
 
