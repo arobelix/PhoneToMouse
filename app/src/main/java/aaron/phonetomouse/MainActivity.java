@@ -1,43 +1,33 @@
 package aaron.phonetomouse;
 
 import android.content.Context;
-import android.hardware.GeomagneticField;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorEvent;
 import android.hardware.Sensor;
 import android.hardware.SensorManager;
-import android.location.Location;
-import android.location.LocationListener;
-import android.location.LocationManager;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.view.MenuItem;
-import android.app.Activity;
-import android.util.Log;
-import android.view.Menu;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
+
+
+
 
 public class MainActivity extends AppCompatActivity implements SensorEventListener{
 
     private SensorManager senSensorManager;
     private Sensor accelerometer;
-    private Sensor magnet;
     private long lastUpdate;
-    private boolean magOn = false;
-    private boolean accelerOn = true;;
     private TextView timeValues;
     private TextView dataValues;
     private Button rightClick;
     private Button leftClick;
-    private GeomagneticField geo;
-    private Location currentLocation;
-    private LocationManager locationManager;
-    private LocationListener locationListener;
+    float benchX = 0;
+    float benchY = 0;
+    float benchZ = 0;
+    float sensitivity = .1f;
     //Called when activity is created
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,35 +38,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         senSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         accelerometer = senSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        magnet = senSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
-        //location request and establishment
-        locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
-        locationListener = new LocationListener() {
-            public void onLocationChanged(Location location) {
-            }
-            public void onStatusChanged(String provider, int status, Bundle extras) {
-
-            }
-            public void onProviderEnabled(String provider) {
-
-            }
-            public void onProviderDisabled(String provider) {
-
-            }
-        };
-        try {
-            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, locationListener);
-            currentLocation = locationListener
-        }
-        catch(SecurityException e) {
-            Log.e("e", "NA");
-        }
-        finally{
-            finish();
-        }
-        geo = new GeomagneticField((float) currentLocation.getLatitude(), (float) currentLocation.getLongitude(), (float) currentLocation.getAltitude(), System.currentTimeMillis());
-
-        senSensorManager.registerListener(this, magnet, SensorManager.SENSOR_DELAY_NORMAL);
         senSensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
 
         timeValues = (TextView) findViewById(R.id.textView2);
@@ -93,15 +54,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             }
         });
         */
-        leftClick.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                accelerOn = !accelerOn;
-                magOn = !magOn;
-            }
-        });
     }
-
 
     @Override
     public void onSensorChanged(SensorEvent sensorEvent) {
@@ -110,24 +63,27 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         float y = sensorEvent.values[1];
         float z = sensorEvent.values[2];
 
-        if (accelerOn && mySensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+        if (mySensor.getType() == Sensor.TYPE_ACCELEROMETER) {
             long curTime = System.currentTimeMillis();
             if(curTime - lastUpdate > 100) {
                 lastUpdate = curTime;
-                dataValues.setText(String.format("%.5f", x) + "  " + String.format("%.5f", y) + "  " + String.format("%.5f", z));
+                if(Math.abs(x - benchX) > sensitivity || Math.abs(y - benchY) > sensitivity ||Math.abs(z - benchZ) > sensitivity) {
+                    dataValues.setText(String.format("%.5f", x - benchX) + "  " + String.format("%.5f", y - benchY) + "  " + String.format("%.5f", z - benchZ));
+                    benchX = x;
+                    benchY = y;
+                    benchZ = z;
+                }
+            }
+        }
+
+
+            long curTime = System.currentTimeMillis();
+            if(curTime - lastUpdate > 100) {
+                lastUpdate = curTime;
 
             }
         }
 
-        if (magOn && mySensor.getType() == Sensor.TYPE_MAGNETIC_FIELD) {
-            long curTime = System.currentTimeMillis();
-            if(curTime - lastUpdate > 100) {
-                lastUpdate = curTime;
-                dataValues.setText(String.format("%.5f", geo.getDeclination()));
-
-            }
-        }
-    }
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
 
@@ -139,7 +95,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     protected void onResume() {
         super.onResume();
         senSensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
-        senSensorManager.registerListener(this, magnet, SensorManager.SENSOR_DELAY_NORMAL);
     }
     /*
     @Override
